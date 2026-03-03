@@ -22,7 +22,7 @@ export async function GET(request: NextRequest) {
       .select('*')
       .eq('is_active', true)
       .order('posted_at', { ascending: false })
-      .limit(100);
+      // .limit(500);
     
     if (industry !== 'all') {
       query = query.eq('industry', industry);
