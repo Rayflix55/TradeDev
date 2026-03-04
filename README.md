@@ -1,4 +1,4 @@
-# 🚀 TradeDev Pro - Developer Jobs Platform
+# 🚀 TradeDev - Developer Jobs Platform
 
 A modern, AI-powered job search platform specifically designed for developers seeking positions at top tech and trading companies. Built with Next.js, TypeScript, and powered by real-time job data from multiple sources.
 

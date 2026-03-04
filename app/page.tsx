@@ -186,7 +186,7 @@ const fetchJobs = async () => {
                 <Zap className="absolute -top-1 -right-1 text-yellow-400" size={16} />
               </div>
               <div>
-                <h1 className="text-2xl font-bold text-white">TradeDev Pro</h1>
+                <h1 className="text-2xl font-bold text-white">TradeDev</h1>
                 <p className="text-slate-400 text-sm">AI-Powered Job Search & Auto-Apply</p>
               </div>
             </div>
