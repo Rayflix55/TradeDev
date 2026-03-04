@@ -42,10 +42,30 @@ export default function TradingJobsFinder() {
     remote: false
   });
 
-  const fetchJobs = () => {
-    // Trigger re-fetch by updating a state
-    setLastUpdated(null);
-  };
+const fetchJobs = async () => {
+  setLoading(true);
+  try {
+    const queryParams = new URLSearchParams({
+      industry: filters.industry,
+      location: filters.location !== 'all' ? filters.location : '',
+      experience: filters.experience !== 'all' ? filters.experience : '',
+      type: filters.type !== 'all' ? filters.type : '',
+      remote: filters.remote.toString(),
+      search: searchQuery
+    });
+
+    const response = await fetch(`/api/jobs?${queryParams}`);
+    const data = await response.json();
+    
+    if (Array.isArray(data)) {
+      setJobs(data);
+    }
+    setLastUpdated(new Date());
+  } catch (err) {
+    console.error('Failed to fetch jobs:', err);
+  }
+  setLoading(false);
+};
 
   useEffect(() => {
     const loadJobs = async () => {
