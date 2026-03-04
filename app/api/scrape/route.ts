@@ -8,85 +8,71 @@ const supabase = createClient(
 );
 
 export async function GET(request: NextRequest) {
+  // Allow Vercel Cron OR Bearer token
   const authHeader = request.headers.get('authorization');
+  const cronSecret = request.headers.get('x-vercel-cron-secret');
   const secret = process.env.SCRAPER_SECRET || 'dev-secret-123';
   
-  if (authHeader !== `Bearer ${secret}`) {
+  const isAuthorized = 
+    authHeader === `Bearer ${secret}` || 
+    cronSecret === process.env.CRON_SECRET;
+  
+  if (!isAuthorized) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
- try {
-  const url = new URL(request.url);
-  const categoryParam = url.searchParams.get('categories');
-  const categories = categoryParam ? categoryParam.split(',').map(c => c.trim()) : ['trading'];
-  
-  console.log('🚀 Starting job scraping...');
-  console.log('📋 Categories:', categories);
-  
-  // Scrape jobs
-  const jobs = await scrapeJobs(categories);
-  console.log(`📊 Scraped ${jobs.length} jobs total`);
-  
-  if (jobs.length === 0) {
-    return NextResponse.json({
-      success: false,
-      message: 'No jobs found',
-      jobsScraped: 0,
-      categories
-    });
-  }
-  
-  // Log first job as sample
-  console.log('📄 Sample job:', {
-    id: jobs[0]?.id,
-    title: jobs[0]?.title,
-    company: jobs[0]?.company
-  });
-  
-  console.log('💾 Saving jobs to database...');
-  
-  // Try inserting one job at a time to isolate the error
-  let successCount = 0;
-  let errorCount = 0;
-  
-  for (const job of jobs) {
+  try {
+    console.log('🚀 Starting job scraping...');
+    
+    // Get categories from query params
+    const { searchParams } = new URL(request.url);
+    const categoriesParam = searchParams.get('categories') || 'tech';
+    const categories = categoriesParam.split(',');
+    
+    // Scrape jobs
+    const jobs = await scrapeJobs(categories);
+    
+    if (jobs.length === 0) {
+      return NextResponse.json({
+        success: false,
+        message: 'No jobs found',
+        jobsScraped: 0
+      });
+    }
+    
+    // Save to database
+    console.log('💾 Saving jobs to database...');
+    
     const { error } = await supabase
       .from('jobs')
-      .upsert(job, {
+      .upsert(jobs, {
         onConflict: 'id',
         ignoreDuplicates: true
       });
     
     if (error) {
-      errorCount++;
-      console.error(`❌ Failed to save job ${job.id}:`, error.message);
-    } else {
-      successCount++;
+      console.error('Database error:', error);
+      throw error;
     }
     
-    // Small delay to avoid rate limiting
-    await new Promise(resolve => setTimeout(resolve, 50));
+    console.log('✅ Jobs saved successfully!');
+    
+    return NextResponse.json({
+      success: true,
+      message: 'Jobs scraped and saved',
+      jobsScraped: jobs.length,
+      timestamp: new Date().toISOString()
+    });
+    
+  } catch (err) {
+    console.error('Scraping error:', err);
+    return NextResponse.json(
+      { 
+        success: false, 
+        error: 'Scraping failed',
+        message: err instanceof Error ? err.message : 'Unknown error'
+      },
+      { status: 500 }
+    );
   }
-  
-  console.log(`✅ ${successCount} jobs saved, ${errorCount} errors`);
-  
-  return NextResponse.json({
-    success: true,
-    message: 'Jobs scraped and saved',
-    jobsScraped: successCount,
-    categories,
-    timestamp: new Date().toISOString()
-  });
-  
-} catch (error) {
-  console.error('🔥 Scraping error:', error);
-  return NextResponse.json(
-    { 
-      success: false, 
-      error: 'Scraping failed',
-      message: error instanceof Error ? error.message : 'Unknown error'
-    },
-    { status: 500 }
-  );
-}
 }
