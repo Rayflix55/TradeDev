@@ -27,6 +27,18 @@ export interface JSearchJob {
   };
 }
 
+// Job roles to search for
+const JOB_ROLES = [
+  'Frontend Developer',
+  'Backend Developer',
+  'Full Stack Developer',
+  'React Developer',
+  'Node.js Developer',
+  'JavaScript Developer',
+  'TypeScript Developer',
+  'Software Engineer'
+];
+
 // Tech companies to search for
 const TECH_COMPANIES = [
   'Google',
@@ -61,7 +73,7 @@ const TECH_COMPANIES = [
   'PayPal'
 ];
 
-// Trading companies (for later)
+// Trading companies
 const TRADING_COMPANIES = [
   'Jane Street',
   'Hudson River Trading',
@@ -99,17 +111,67 @@ export async function searchJobs(query: string, numPages: number = 1) {
   }
 }
 
+// NEW: Search by job role instead of just company
+export async function scrapeTechJobsByRole() {
+  const allJobs = [];
+  
+  console.log('🔍 Searching for Frontend, Backend, and Fullstack roles...');
+  
+  for (const role of JOB_ROLES) {
+    try {
+      console.log(`  Searching: ${role}...`);
+      const jobs = await searchJobs(role, 2); // Search 2 pages per role
+      
+      const transformedJobs = jobs.map((job: JSearchJob) => ({
+        id: `jsearch-${job.job_id}`,
+        title: job.job_title,
+        company: job.employer_name,
+        location: [job.job_city, job.job_country].filter(Boolean).join(', ') || 'Remote',
+        remote: job.job_is_remote ? 'Remote' : 'On-site',
+        salary: job.job_min_salary && job.job_max_salary 
+          ? `$${job.job_min_salary.toLocaleString()} - $${job.job_max_salary.toLocaleString()}`
+          : 'Competitive',
+        experience_level: determineExperienceLevel(job),
+        job_type: job.job_employment_type || 'Full-time',
+        description: job.job_description?.substring(0, 500) || '',
+        requirements: extractRequirements(job),
+        tech: extractTechStack(job.job_description || ''),
+        benefits: job.job_highlights?.Benefits || [],
+        about: `${job.employer_name} is hiring for ${role} positions.`,
+        industry: 'tech',
+        source: 'jsearch',
+        apply_url: job.job_apply_link,
+        posted_at: job.job_posted_at_datetime_utc || new Date().toISOString(),
+        scraped_at: new Date().toISOString(),
+        is_active: true
+      }));
+      
+      allJobs.push(...transformedJobs);
+      console.log(`  ✅ Found ${transformedJobs.length} ${role} jobs`);
+      
+      // Rate limiting
+      await new Promise(resolve => setTimeout(resolve, 1500));
+      
+    } catch (error) {
+      console.log(`  ❌ Failed to search ${role}: ${error}`);
+    }
+  }
+  
+  console.log(`\n✅ Total jobs found: ${allJobs.length}`);
+  return allJobs;
+}
+
+// Keep original company-based search as backup
 export async function scrapeTechJobs() {
   const allJobs = [];
   
-  console.log('🔍 Searching for tech jobs across LinkedIn, Indeed, Glassdoor...');
+  console.log('🔍 Searching for tech jobs at specific companies...');
   
   for (const company of TECH_COMPANIES) {
     try {
       console.log(`  Searching: ${company}...`);
       const jobs = await searchJobs(company);
       
-      // Filter to ensure jobs are actually from this company
       const companyJobs = jobs.filter((job: JSearchJob) => 
         job.employer_name?.toLowerCase().includes(company.toLowerCase())
       );
@@ -141,7 +203,6 @@ export async function scrapeTechJobs() {
       allJobs.push(...transformedJobs);
       console.log(`  ✅ Found ${transformedJobs.length} jobs at ${company}`);
       
-      // Rate limiting
       await new Promise(resolve => setTimeout(resolve, 1000));
       
     } catch (error) {
@@ -156,7 +217,7 @@ export async function scrapeTechJobs() {
 export async function scrapeTradingJobs() {
   const allJobs = [];
   
-  console.log('🔍 Searching for trading jobs across LinkedIn, Indeed, etc...');
+  console.log('🔍 Searching for trading jobs...');
   
   for (const company of TRADING_COMPANIES) {
     try {
@@ -236,7 +297,8 @@ function extractTechStack(description: string): string[] {
   const technologies = [
     'Python', 'JavaScript', 'TypeScript', 'React', 'Node.js', 'Java',
     'C++', 'Go', 'Rust', 'AWS', 'Docker', 'Kubernetes', 'SQL',
-    'MongoDB', 'PostgreSQL', 'GraphQL', 'REST', 'Git', 'Linux'
+    'MongoDB', 'PostgreSQL', 'GraphQL', 'REST', 'Git', 'Linux',
+    'Vue', 'Angular', 'Next.js', 'Express', 'Django', 'Flask'
   ];
   
   technologies.forEach(t => {
