@@ -409,6 +409,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 If you find this project helpful, please give it a ⭐ on GitHub!
 
 For issues and feature requests, please use the [GitHub Issues](https://github.com/Rayflix55/TradeDev/issues) page.
+Thanks
 
 ---
 
