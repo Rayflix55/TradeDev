@@ -7,8 +7,8 @@
   ],
   "crons": [
     {
-      "path": "/api/scrape?categories=tech",
-      "schedule": "0 2 * * *" 
+      "path": "/api/scrape?categories=tech,trading",
+      "schedule": "0 2 * * *"
     }
   ]
 }
