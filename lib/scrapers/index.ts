@@ -4,7 +4,7 @@ export async function scrapeJobs(categories: string[] = ['tech']) {
   const allJobs = [];
   
   if (categories.includes('tech')) {
-    const techJobs = await scrapeTechJobsByRole(); // Changed this!
+    const techJobs = await scrapeTechJobsByRole();
     allJobs.push(...techJobs);
   }
   
