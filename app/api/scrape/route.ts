@@ -51,9 +51,14 @@ export async function GET(request: NextRequest) {
       });
     
     if (error) {
-      console.error('Database error:', error);
-      throw error;
-    }
+  // Don't fail the whole scrape for duplicates
+  if (error.code === '23505') {
+    console.log('⚠️ Some duplicate jobs skipped');
+  } else {
+    console.error('Database error:', error);
+    throw error;
+  }
+}
     
     console.log('✅ Jobs saved successfully!');
     
